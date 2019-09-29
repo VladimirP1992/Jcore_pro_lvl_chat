@@ -14,6 +14,8 @@ public class ClientHandler {
     private DataInputStream in;
     private DataOutputStream out;
 
+    private String login;
+    //private String password;
     private String name;
 
     public String getName() {
@@ -74,10 +76,12 @@ public class ClientHandler {
             String str = in.readUTF();
             if (str.startsWith("/auth")) {
                 String[] parts = str.split("\\s");
+                login = parts[1];
                 String nick = myServer.getAuthService().getNickByLoginPass(parts[1], parts[2]);
                 if (nick != null) {
                     if (!myServer.isNickBusy(nick)) {
                         sendMsg("/authok " + nick);
+                        System.out.println("/authok " + nick);
                         name = nick;
                         myServer.broadcastMsg(name + " зашел в чат");
                         myServer.subscribe(this);
@@ -109,6 +113,22 @@ public class ClientHandler {
                 }
                 else{
                     sendMsg("В чате нет участника с ником " + destinationNick + "!");
+                }
+            }
+            else if(strFromClient.startsWith("/changemynick")) {
+                String[] parts = strFromClient.split("\\s");
+                String newNick = parts[1];
+                AuthService authServices = myServer.getAuthService();
+                if (!authServices.isNickBusy(newNick)) {
+                    if (authServices.changeNick(login, newNick)) {
+                        sendMsg("/changemynickok " + newNick);
+                        myServer.broadcastMsg(name + " поменял ник на " + newNick);
+                        name = newNick;
+                    } else {
+                        sendMsg("Не удалось сменить ник (возможно возникла ошибка при обращении к БД)!");
+                    }
+                } else {
+                    sendMsg("Ник " + newNick + " уже занят!");
                 }
             }
             else{
