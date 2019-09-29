@@ -22,11 +22,14 @@ public class MyClient implements Runnable {
     private TextField loginField;
     private TextField passwordField;
     private TextArea chatArea;
+    private TextField nickField;
 
-    public MyClient(TextField loginField, TextField passwordField,TextArea chatArea) throws IOException {
+    public MyClient(TextField loginField, TextField passwordField,TextArea chatArea, TextField nickField) throws IOException {
         this.loginField = loginField;
         this.passwordField = passwordField;
         this.chatArea = chatArea;
+        this.nickField = nickField;
+
         t = new Thread(this);
 
         socket = new Socket(SERVER_ADDR, SERVER_PORT);
@@ -36,7 +39,9 @@ public class MyClient implements Runnable {
         setAuthorized(false);
         t.setDaemon(true);
         t.start();
-        chatArea.appendText("Клиент запущен на порту " + SERVER_PORT + "\n");
+        synchronized (chatArea) {
+            chatArea.appendText("Клиент запущен на порту " + SERVER_PORT + "\n");
+        }
 
 
     }
@@ -47,31 +52,55 @@ public class MyClient implements Runnable {
             while (true) {
                 String strFromServer = in.readUTF();
                 if(strFromServer.startsWith("/authok")) {
+                    String[] parts = strFromServer.split("\\s");
+                    synchronized (nickField) {
+                        nickField.setText(parts[1]);
+                    }
                     setAuthorized(true);
-                    chatArea.appendText("Вы авторизованы! Для завершения сессии отправьте команду \"/end\".\n");
-                    break;
-                } else if (strFromServer.startsWith("##session##end##")) {
-                    chatArea.appendText(strFromServer.replaceFirst("##session##end## ", "") + "\n");
+                    synchronized (chatArea) {
+                        chatArea.appendText("Вы авторизованы! Для завершения сессии отправьте команду \"/end\".\n");
+                    }
                     break;
                 }
-                chatArea.appendText(strFromServer + "\n");
+                else if (strFromServer.startsWith("##session##end##")) {
+                    synchronized (chatArea) {
+                        chatArea.appendText(strFromServer.replaceFirst("##session##end## ", "") + "\n");
+                    }
+                    break;
+                }
+                synchronized (chatArea) {
+                    chatArea.appendText(strFromServer + "\n");
+                }
             }
             while (isAuthorized) {
                 String strFromServer = in.readUTF();
                 if (strFromServer.startsWith("##session##end##")) {
-                    chatArea.appendText(strFromServer.replaceFirst("##session##end## ", ""));
+                    synchronized (chatArea) {
+                        chatArea.appendText(strFromServer.replaceFirst("##session##end## ", ""));
+                    }
                     break;
                 }
-                chatArea.appendText(strFromServer);
-                chatArea.appendText("\n");
+                else if(strFromServer.startsWith("/changemynickok")){
+                    String[] parts = strFromServer.split("\\s");
+                    synchronized (nickField) {
+                        nickField.setText(parts[1]);
+                    }
+                }
+                synchronized (chatArea) {
+                    chatArea.appendText(strFromServer + "\n");
+                }
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void setAuthorized(boolean authorized) {
+    private synchronized void setAuthorized(boolean authorized) {
         isAuthorized = authorized;
+    }
+
+    public boolean isAuthorized(){
+        return isAuthorized;
     }
 
     public State getState(){
@@ -80,14 +109,20 @@ public class MyClient implements Runnable {
 
     public void authorize(){
         if(isAuthorized){
-            chatArea.appendText("Вы уже авторизованы! Для завершения сессии отправьте команду \"/end\".\n");
+            synchronized (chatArea) {
+                chatArea.appendText("Вы уже авторизованы! Для завершения сессии отправьте команду \"/end\".\n");
+            }
             return;
         }
 
         try {
             out.writeUTF("/auth " + loginField.getText() + " " + passwordField.getText());
-            loginField.clear();
-            passwordField.clear();
+            synchronized (loginField) {
+                loginField.clear();
+            }
+            synchronized (passwordField) {
+                passwordField.clear();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -95,8 +130,10 @@ public class MyClient implements Runnable {
 
     public void sendMessage(String message){
         try {
-            if(message.equalsIgnoreCase("/end"))
+            if(message.equalsIgnoreCase("/end")) {
                 setAuthorized(false);
+                nickField.clear();
+            }
             out.writeUTF(message);
         } catch (Exception e) {
             e.printStackTrace();
