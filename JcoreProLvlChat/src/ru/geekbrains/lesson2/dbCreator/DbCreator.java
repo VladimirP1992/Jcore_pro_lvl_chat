@@ -31,6 +31,8 @@ public class DbCreator {
 //            stmt.executeUpdate("INSERT INTO users (login, password, nick) VALUES ('login2', 'pass2', 'nick2')");
 //            stmt.executeUpdate("INSERT INTO users (login, password, nick) VALUES ('login3', 'pass3', 'nick3')");
 //            stmt.executeUpdate("INSERT INTO users (login, password, nick) VALUES ('login4', 'pass4', 'nick4')");
+//            stmt.executeUpdate("UPDATE users SET nick = 'nick1' WHERE login = 'login1';");
+//            stmt.executeUpdate("DELETE FROM users WHERE id = 4;");
             con.close();
         }
         catch(Exception ex){
