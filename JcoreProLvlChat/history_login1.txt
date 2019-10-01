@@ -1,0 +1,17 @@
+nick1: message
+nick1: dsfs
+nick1: f
+nick1: f
+nick1: d
+nick1: f
+nick1: sd
+nick1: f
+nick1: df
+nick1: f
+nick1: sd
+nick1: f
+nick1: s
+nick1: f
+nick1: sf
+nick1: sdf
+/clients nick1 
