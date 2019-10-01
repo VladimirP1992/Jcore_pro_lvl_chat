@@ -1,10 +1,9 @@
 package ru.geekbrains.client;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.lang.Thread.State;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 import javafx.scene.control.*;
@@ -19,10 +18,13 @@ public class MyClient implements Runnable {
     private DataOutputStream out;
     private boolean isAuthorized;
 
+    private String currentLogin;
     private TextField loginField;
     private TextField passwordField;
     private TextArea chatArea;
     private TextField nickField;
+
+    private String logFileName;
 
     public MyClient(TextField loginField, TextField passwordField,TextArea chatArea, TextField nickField) throws IOException {
         this.loginField = loginField;
@@ -42,8 +44,6 @@ public class MyClient implements Runnable {
         synchronized (chatArea) {
             chatArea.appendText("Клиент запущен на порту " + SERVER_PORT + "\n");
         }
-
-
     }
 
     @Override
@@ -53,6 +53,8 @@ public class MyClient implements Runnable {
                 String strFromServer = in.readUTF();
                 if(strFromServer.startsWith("/authok")) {
                     String[] parts = strFromServer.split("\\s");
+                    logFileName = "history_".concat(currentLogin).concat(".txt");
+
                     synchronized (nickField) {
                         nickField.setText(parts[1]);
                     }
@@ -60,6 +62,7 @@ public class MyClient implements Runnable {
                     synchronized (chatArea) {
                         chatArea.appendText("Вы авторизованы! Для завершения сессии отправьте команду \"/end\".\n");
                     }
+                    getHistory(logFileName, chatArea);
                     break;
                 }
                 else if (strFromServer.startsWith("##session##end##")) {
@@ -89,6 +92,7 @@ public class MyClient implements Runnable {
                 synchronized (chatArea) {
                     chatArea.appendText(strFromServer + "\n");
                 }
+                logMessage(logFileName, strFromServer);
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -116,7 +120,15 @@ public class MyClient implements Runnable {
         }
 
         try {
-            out.writeUTF("/auth " + loginField.getText() + " " + passwordField.getText());
+            String currentPassword;
+            synchronized (loginField){
+                currentLogin = loginField.getText();
+            }
+            synchronized (passwordField){
+                currentPassword = passwordField.getText();
+            }
+
+            out.writeUTF("/auth " + currentLogin + " " + currentPassword);
             synchronized (loginField) {
                 loginField.clear();
             }
@@ -147,5 +159,20 @@ public class MyClient implements Runnable {
 
     public boolean isAlive(){
         return t.isAlive();
+    }
+
+    private void getHistory(String logFileName, TextArea chatArea) {
+        if(new File(logFileName).exists()) {
+
+        }
+    }
+
+    private void logMessage(String logFileName, String message){
+        try(OutputStreamWriter osw = new OutputStreamWriter(new FileOutputStream(logFileName, true), StandardCharsets.UTF_8)) {
+            osw.write(message.concat("\n"));
+        } catch (IOException e){
+            System.out.println("Ошибка записи в log-файл");
+            e.printStackTrace();
+        }
     }
 }
