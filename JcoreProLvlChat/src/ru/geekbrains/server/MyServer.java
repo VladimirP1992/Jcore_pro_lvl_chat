@@ -3,6 +3,7 @@ package ru.geekbrains.server;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,8 +28,15 @@ public class MyServer {
                 System.out.println("Клиент подключился");
                 new ClientHandler(this, socket);
             }
+        }
+        catch (SQLException e){
+            System.out.println("Ошибка при работе с БД");
+            e.printStackTrace();
         } catch (IOException e) {
             System.out.println("Ошибка в работе сервера");
+        } catch (Exception e){
+            System.out.println("Ошибка!" + e);
+            e.printStackTrace();
         } finally {
             if (authService != null) {
                 authService.stop();
@@ -43,6 +51,10 @@ public class MyServer {
             }
         }
         return false;
+    }
+
+    public synchronized boolean isNickChangeAllowed(String nick){
+        return authService.isNickBusy(nick);
     }
 
     public synchronized void broadcastMsg(String msg) {
