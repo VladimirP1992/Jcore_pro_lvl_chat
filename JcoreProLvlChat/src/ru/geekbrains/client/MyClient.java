@@ -25,6 +25,7 @@ public class MyClient implements Runnable {
     private TextField nickField;
 
     private String logFileName;
+    private final int HISTORY_LENGTH = 100;
 
     public MyClient(TextField loginField, TextField passwordField,TextArea chatArea, TextField nickField) throws IOException {
         this.loginField = loginField;
@@ -62,7 +63,7 @@ public class MyClient implements Runnable {
                     synchronized (chatArea) {
                         chatArea.appendText("Вы авторизованы! Для завершения сессии отправьте команду \"/end\".\n");
                     }
-                    getHistory(logFileName, chatArea);
+                    getHistory(logFileName, HISTORY_LENGTH);
                     break;
                 }
                 else if (strFromServer.startsWith("##session##end##")) {
@@ -161,13 +162,39 @@ public class MyClient implements Runnable {
         return t.isAlive();
     }
 
-    private void getHistory(String logFileName, TextArea chatArea) {
+    private void getHistory(String logFileName, int linesFromEnd) {
         if(new File(logFileName).exists()) {
+            try( RandomAccessFile raf = new RandomAccessFile(logFileName, "r")){
+                long rafLength = raf.length();
+                if(rafLength == 0){
+                    return;
+                }
 
+                long linesCounter = 0;
+                final long linesCounterMax = linesFromEnd + 1;
+                for (long i = rafLength-1; (i >= 0) && (linesCounter < linesCounterMax); i--){
+                    raf.seek(i);
+                    Character ch = (char) raf.read();
+                    if(ch.equals('\n')){
+                        linesCounter++;
+                    }
+                }
+
+                synchronized (chatArea) {
+                    String line;
+                    while ((line = raf.readLine()) != null) {
+                        chatArea.appendText(line);
+                        chatArea.appendText("\n");
+                    }
+                }
+
+            }catch (IOException e){
+                e.printStackTrace();
+            }
         }
     }
 
-    private void logMessage(String logFileName, String message){
+    private void logMessage(String logFileName, String message) {
         try(OutputStreamWriter osw = new OutputStreamWriter(new FileOutputStream(logFileName, true), StandardCharsets.UTF_8)) {
             osw.write(message.concat("\n"));
         } catch (IOException e){
