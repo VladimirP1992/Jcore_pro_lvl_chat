@@ -63,7 +63,7 @@ public class MyClient implements Runnable {
                     synchronized (chatArea) {
                         chatArea.appendText("Вы авторизованы! Для завершения сессии отправьте команду \"/end\".\n");
                     }
-                    getHistory(logFileName, HISTORY_LENGTH);
+                    //getHistory(logFileName, HISTORY_LENGTH);
                     break;
                 }
                 else if (strFromServer.startsWith("##session##end##")) {
