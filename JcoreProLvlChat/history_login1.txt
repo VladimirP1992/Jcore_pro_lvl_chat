@@ -1,0 +1,58 @@
+/clients nick1 
+nick1: fgdfg
+nick1: dfg
+nick1: dfg
+nick1: df
+nick1: g
+nick1: dfg
+nick1: d
+nick1: fg
+nick1: d
+nick1: fg
+nick1: df
+nick1: gd
+nick1: fg
+nick1: fd
+nick1: g
+nick1: df
+nick1: g
+nick1: df
+nick1: g
+nick1: fdh
+nick1: df
+nick1: hg
+nick1: h
+nick1: dfh
+nick1: d
+nick1: fh
+nick1: dfh
+nick1: df
+nick1: h
+/clients nick1 
+/clients nick1 
+nick1: hm
+nick1: where is my history?
+/clients nick1 
+/clients nick1 
+/clients nick1 
+/clients nick1 
+/clients nick1 
+/clients nick1 
+/clients nick1 
+nick1: апр
+nick1: ар
+/clients nick1 
+nick1: g
+/clients nick1 
+/clients nick1 
+/clients nick1 
+/clients nick1 
+/clients nick1 
+nick1: привет всем
+Вы написали nick1:   Привет это личное сообщение
+От nick1:   Привет это личное сообщение
+/clients nick1 
+nick1: Привет всем
+Вы написали nick1:   Привет это личное сообщение самому себе
+От nick1:   Привет это личное сообщение самому себе
+nick1: щас отключусь

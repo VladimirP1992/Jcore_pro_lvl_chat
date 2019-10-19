@@ -1,10 +1,9 @@
 package ru.geekbrains.client;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.lang.Thread.State;
 import java.net.Socket;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
 import javafx.scene.control.*;
@@ -19,14 +18,21 @@ public class MyClient implements Runnable {
     private DataOutputStream out;
     private boolean isAuthorized;
 
+    private String currentLogin;
     private TextField loginField;
     private TextField passwordField;
     private TextArea chatArea;
+    private TextField nickField;
 
-    public MyClient(TextField loginField, TextField passwordField,TextArea chatArea) throws IOException {
+    private String logFileName;
+    private final int HISTORY_LENGTH = 100;
+
+    public MyClient(TextField loginField, TextField passwordField,TextArea chatArea, TextField nickField) throws IOException {
         this.loginField = loginField;
         this.passwordField = passwordField;
         this.chatArea = chatArea;
+        this.nickField = nickField;
+
         t = new Thread(this);
 
         socket = new Socket(SERVER_ADDR, SERVER_PORT);
@@ -36,9 +42,9 @@ public class MyClient implements Runnable {
         setAuthorized(false);
         t.setDaemon(true);
         t.start();
-        chatArea.appendText("Клиент запущен на порту " + SERVER_PORT + "\n");
-
-
+        synchronized (chatArea) {
+            chatArea.appendText("Клиент запущен на порту " + SERVER_PORT + "\n");
+        }
     }
 
     @Override
@@ -47,31 +53,59 @@ public class MyClient implements Runnable {
             while (true) {
                 String strFromServer = in.readUTF();
                 if(strFromServer.startsWith("/authok")) {
+                    String[] parts = strFromServer.split("\\s");
+                    logFileName = "history_".concat(currentLogin).concat(".txt");
+
+                    synchronized (nickField) {
+                        nickField.setText(parts[1]);
+                    }
                     setAuthorized(true);
-                    chatArea.appendText("Вы авторизованы! Для завершения сессии отправьте команду \"/end\".\n");
-                    break;
-                } else if (strFromServer.startsWith("##session##end##")) {
-                    chatArea.appendText(strFromServer.replaceFirst("##session##end## ", "") + "\n");
+                    synchronized (chatArea) {
+                        chatArea.appendText("Вы авторизованы! Для завершения сессии отправьте команду \"/end\".\n");
+                    }
+                    //getHistory(logFileName, HISTORY_LENGTH);
                     break;
                 }
-                chatArea.appendText(strFromServer + "\n");
+                else if (strFromServer.startsWith("##session##end##")) {
+                    synchronized (chatArea) {
+                        chatArea.appendText(strFromServer.replaceFirst("##session##end## ", "") + "\n");
+                    }
+                    break;
+                }
+                synchronized (chatArea) {
+                    chatArea.appendText(strFromServer + "\n");
+                }
             }
             while (isAuthorized) {
                 String strFromServer = in.readUTF();
                 if (strFromServer.startsWith("##session##end##")) {
-                    chatArea.appendText(strFromServer.replaceFirst("##session##end## ", ""));
+                    synchronized (chatArea) {
+                        chatArea.appendText(strFromServer.replaceFirst("##session##end## ", ""));
+                    }
                     break;
                 }
-                chatArea.appendText(strFromServer);
-                chatArea.appendText("\n");
+                else if(strFromServer.startsWith("/changemynickok")){
+                    String[] parts = strFromServer.split("\\s");
+                    synchronized (nickField) {
+                        nickField.setText(parts[1]);
+                    }
+                }
+                synchronized (chatArea) {
+                    chatArea.appendText(strFromServer + "\n");
+                }
+                logMessage(logFileName, strFromServer);
             }
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void setAuthorized(boolean authorized) {
+    private synchronized void setAuthorized(boolean authorized) {
         isAuthorized = authorized;
+    }
+
+    public boolean isAuthorized(){
+        return isAuthorized;
     }
 
     public State getState(){
@@ -80,14 +114,28 @@ public class MyClient implements Runnable {
 
     public void authorize(){
         if(isAuthorized){
-            chatArea.appendText("Вы уже авторизованы! Для завершения сессии отправьте команду \"/end\".\n");
+            synchronized (chatArea) {
+                chatArea.appendText("Вы уже авторизованы! Для завершения сессии отправьте команду \"/end\".\n");
+            }
             return;
         }
 
         try {
-            out.writeUTF("/auth " + loginField.getText() + " " + passwordField.getText());
-            loginField.clear();
-            passwordField.clear();
+            String currentPassword;
+            synchronized (loginField){
+                currentLogin = loginField.getText();
+            }
+            synchronized (passwordField){
+                currentPassword = passwordField.getText();
+            }
+
+            out.writeUTF("/auth " + currentLogin + " " + currentPassword);
+            synchronized (loginField) {
+                loginField.clear();
+            }
+            synchronized (passwordField) {
+                passwordField.clear();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -95,8 +143,10 @@ public class MyClient implements Runnable {
 
     public void sendMessage(String message){
         try {
-            if(message.equalsIgnoreCase("/end"))
+            if(message.equalsIgnoreCase("/end")) {
                 setAuthorized(false);
+                nickField.clear();
+            }
             out.writeUTF(message);
         } catch (Exception e) {
             e.printStackTrace();
@@ -110,5 +160,46 @@ public class MyClient implements Runnable {
 
     public boolean isAlive(){
         return t.isAlive();
+    }
+
+    private void getHistory(String logFileName, int linesFromEnd) {
+        if(new File(logFileName).exists()) {
+            try( RandomAccessFile raf = new RandomAccessFile(logFileName, "r")){
+                long rafLength = raf.length();
+                if(rafLength == 0){
+                    return;
+                }
+
+                long linesCounter = 0;
+                final long linesCounterMax = linesFromEnd + 1;
+                for (long i = rafLength-1; (i >= 0) && (linesCounter < linesCounterMax); i--){
+                    raf.seek(i);
+                    Character ch = (char) raf.read();
+                    if(ch.equals('\n')){
+                        linesCounter++;
+                    }
+                }
+
+                synchronized (chatArea) {
+                    String line;
+                    while ((line = raf.readLine()) != null) {
+                        chatArea.appendText(line);
+                        chatArea.appendText("\n");
+                    }
+                }
+
+            }catch (IOException e){
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void logMessage(String logFileName, String message) {
+        try(OutputStreamWriter osw = new OutputStreamWriter(new FileOutputStream(logFileName, true), StandardCharsets.UTF_8)) {
+            osw.write(message.concat("\n"));
+        } catch (IOException e){
+            System.out.println("Ошибка записи в log-файл");
+            e.printStackTrace();
+        }
     }
 }

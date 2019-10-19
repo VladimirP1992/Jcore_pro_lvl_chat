@@ -20,7 +20,7 @@
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="JcoreProLvlChat" target="8" />
+      <module name="JcoreProLvlChat" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>

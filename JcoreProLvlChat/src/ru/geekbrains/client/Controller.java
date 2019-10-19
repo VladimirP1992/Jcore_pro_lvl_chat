@@ -15,18 +15,27 @@ public class Controller {
     public Button sendButton;
     public TextArea chatArea;
 
+
+    public Button changeNickButton;
+    public TextField myNickField;
+    public TextField newNickField;
+
     public void clickConnect(ActionEvent event){
         if(loginField.getText().isEmpty() || passwordField.getText().isEmpty()){
-            chatArea.appendText("Поля \"Логин\" и \"Пароль\" не должны быть пустыми!\n");
+            synchronized (chatArea){
+                chatArea.appendText("Поля \"Логин\" и \"Пароль\" не должны быть пустыми!\n");
+            }
             return;
         }
 
         if(client == null || client.getState() == State.TERMINATED){
             try {
-                client = new MyClient(loginField, passwordField, chatArea);
+                client = new MyClient(loginField, passwordField, chatArea, myNickField);
             } catch (IOException e) {
                 e.printStackTrace();
-                chatArea.appendText("Не удалось подключиться к серверу - вероятно он не запущен!\n");
+                synchronized (chatArea) {
+                    chatArea.appendText("Не удалось подключиться к серверу - вероятно он не запущен!\n");
+                }
                 client = null;
             }
         }
@@ -38,14 +47,46 @@ public class Controller {
     public void clickSend(ActionEvent event) {
         String message = messageField.getText().trim();
         if (message.isEmpty()){
-            chatArea.appendText("Пустое сообщение не будет отправлено!\n");
+            synchronized (chatArea) {
+                chatArea.appendText("Пустое сообщение не будет отправлено!\n");
+            }
         }
         else if(client != null && client.isAlive()){
-            messageField.clear();
+            synchronized (messageField) {
+                messageField.clear();
+            }
             client.sendMessage(message);
         }
         else{
-            chatArea.appendText("Не удалось отправить сообщение - возможно соединение с сервером не установлено!\n");
+            synchronized (chatArea) {
+                chatArea.appendText("Не удалось отправить сообщение - возможно соединение с сервером не установлено!\n");
+            }
+        }
+    }
+
+    public void clickChangeNick(ActionEvent event) {
+        String newNickStr = newNickField.getText().trim();
+        if(newNickStr.isEmpty()){
+            synchronized (chatArea) {
+                chatArea.appendText("Новый ник не должен быть пустым!\n");
+            }
+        }
+        else if(client != null && client.isAlive()){
+            if (!client.isAuthorized()){
+                synchronized (chatArea) {
+                    chatArea.appendText("Вы еще не авторизовались - смена ника невозможна!\n");
+                }
+                return;
+            }
+            synchronized (newNickField) {
+                newNickField.clear();
+            }
+            client.sendMessage("/changemynick " + newNickStr);
+        }
+        else{
+            synchronized (chatArea) {
+                chatArea.appendText("Не сменить ник - возможно соединение с сервером не установлено!\n");
+            }
         }
     }
 }
