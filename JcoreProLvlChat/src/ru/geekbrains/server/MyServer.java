@@ -6,6 +6,7 @@ import java.net.Socket;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class MyServer {
     private final int PORT = 8189;
@@ -13,29 +14,39 @@ public class MyServer {
     private List<ClientHandler> clients;
     private AuthService authService;
 
+    private Logger logger;
+
     public AuthService getAuthService() {
         return authService;
     }
+    public Logger getLogger() { return logger; }
 
-    public MyServer() {
+    public MyServer(Logger logger) {
+        this.logger = logger;
+
         try (ServerSocket server = new ServerSocket(PORT)) {
             authService = new BaseAuthService();
             authService.start();
             clients = new ArrayList<>();
             while (true) {
-                System.out.println("Сервер ожидает подключения");
+                //System.out.println("Сервер ожидает подключения");
+                logger.info("Сервер ожидает подключения");
                 Socket socket = server.accept();
-                System.out.println("Клиент подключился");
+                //System.out.println("Клиент подключился");
+                logger.info("Клиент подключился");
                 new ClientHandler(this, socket);
             }
         }
         catch (SQLException e){
-            System.out.println("Ошибка при работе с БД");
+            //System.out.println("Ошибка при работе с БД");
+            logger.warning("Ошибка при работе с БД");
             e.printStackTrace();
         } catch (IOException e) {
-            System.out.println("Ошибка в работе сервера");
+            //System.out.println("Ошибка в работе сервера");
+            logger.warning("Ошибка в работе сервера");
         } catch (Exception e){
-            System.out.println("Ошибка!" + e);
+            //System.out.println("Ошибка!" + e);
+            logger.warning("Ошибка!" + e);
             e.printStackTrace();
         } finally {
             if (authService != null) {
@@ -60,6 +71,8 @@ public class MyServer {
     public synchronized void broadcastMsg(String msg) {
         for (ClientHandler o : clients) {
             o.sendMsg(msg);
+
+            logger.info("Широковещательное сообщение: " + msg);
         }
     }
 
@@ -67,6 +80,7 @@ public class MyServer {
         for (ClientHandler o : clients) {
             if (o.getName().equals(destinationNick)) {
                 o.sendMsg(msg);
+                 logger.info("Личное сообщение для " + destinationNick + ": " + msg);
                 break;
             }
         }
