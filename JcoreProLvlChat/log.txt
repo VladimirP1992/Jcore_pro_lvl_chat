@@ -1,0 +1,16 @@
+окт 19, 2019 4:10:38 PM ru.geekbrains.server.ServerApp main
+INFO: Сервер запущен!
+окт 19, 2019 4:10:39 PM ru.geekbrains.server.MyServer <init>
+INFO: Сервер ожидает подключения
+окт 19, 2019 4:10:52 PM ru.geekbrains.server.MyServer <init>
+INFO: Клиент подключился
+окт 19, 2019 4:10:52 PM ru.geekbrains.server.MyServer <init>
+INFO: Сервер ожидает подключения
+окт 19, 2019 4:10:52 PM ru.geekbrains.server.MyServer broadcastMsg
+INFO: Широковещательное сообщение: /clients nick1 
+окт 19, 2019 4:11:02 PM ru.geekbrains.server.MyServer broadcastMsg
+INFO: Широковещательное сообщение: nick1: Привет всем
+окт 19, 2019 4:11:27 PM ru.geekbrains.server.MyServer sendPrivateMsg
+INFO: Личное сообщение для nick1: От nick1:   Привет это личное сообщение самому себе
+окт 19, 2019 4:11:45 PM ru.geekbrains.server.MyServer broadcastMsg
+INFO: Широковещательное сообщение: nick1: щас отключусь

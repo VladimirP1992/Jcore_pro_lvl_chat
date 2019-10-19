@@ -46,3 +46,13 @@ nick1: g
 /clients nick1 
 /clients nick1 
 /clients nick1 
+/clients nick1 
+/clients nick1 
+nick1: привет всем
+Вы написали nick1:   Привет это личное сообщение
+От nick1:   Привет это личное сообщение
+/clients nick1 
+nick1: Привет всем
+Вы написали nick1:   Привет это личное сообщение самому себе
+От nick1:   Привет это личное сообщение самому себе
+nick1: щас отключусь
